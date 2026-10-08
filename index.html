@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мій бюджет</title>
+<meta name="theme-color" content="#111A24">
+<meta name="description" content="Офлайн-трекер витрат і доходів">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF2EC; --card:#FFFFFF; --ink:#1C2E45; --muted:#5E6B78; --line:#D5DDD6;
+  --gold:#B8862A; --out:#B4463B; --errbg:#FBE3DF; --errink:#8E2A20; --warnbg:#FBF0D6; --warnink:#7A5512; --in:#2E7A52; --chip:#E2E9E3; --field:#F6F8F5;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#111A24; --card:#18232F; --ink:#E6ECE7; --muted:#97A3AE; --line:#2B3846;
+    --gold:#D9A947; --out:#E07A6E; --errbg:#4A1E1A; --errink:#FFD3CC; --warnbg:#3F3216; --warnink:#FFE2A6; --in:#5DBB8A; --chip:#223040; --field:#1D2935;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111A24; --card:#18232F; --ink:#E6ECE7; --muted:#97A3AE; --line:#2B3846;
+  --gold:#D9A947; --out:#E07A6E; --errbg:#4A1E1A; --errink:#FFD3CC; --warnbg:#3F3216; --warnink:#FFE2A6; --in:#5DBB8A; --chip:#223040; --field:#1D2935;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "Onest",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 96px}
+.num{font-family:"Unbounded","Onest",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.month{font-family:"Unbounded",system-ui,sans-serif;font-weight:500;font-size:1.05rem;text-transform:none}
+.arrow{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:1.1rem;display:grid;place-items:center}
+.arrow:disabled{opacity:.35;cursor:default}
+
+.hero{background:var(--ink);color:var(--paper);border-radius:22px;padding:20px 20px 18px;position:relative;overflow:hidden}
+.hero .label{font-size:.9rem;opacity:.75}
+.hero .big{font-size:clamp(2.2rem,11vw,3.2rem);font-weight:700;line-height:1.1;margin:4px 0 14px;letter-spacing:-.02em}
+.hero .big small{font-size:.45em;font-weight:500;opacity:.7;margin-left:4px}
+.ruler{position:relative;height:14px;border-radius:7px;background:rgba(255,255,255,.14);overflow:hidden}
+:root[data-theme="dark"] .ruler{background:rgba(0,0,0,.18)}
+.ruler .fill{position:absolute;inset:0 auto 0 0;background:var(--gold);border-radius:7px;transition:width .4s ease}
+.ruler .fill.over{background:var(--out)}
+.ticks{display:flex;justify-content:space-between;font-size:.8rem;opacity:.75;margin-top:6px}
+.allow{margin-top:14px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.25);font-size:.95rem}
+.allow b{font-family:"Unbounded",system-ui,sans-serif;font-weight:500}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.stat{background:var(--card);border-radius:16px;padding:12px 14px;border:1px solid var(--line)}
+.stat span{display:block;font-size:.85rem;color:var(--muted)}
+.stat .num{font-size:1.15rem;font-weight:500}
+.in{color:var(--in)} .out{color:var(--out)}
+
+section{margin-top:22px}
+h2{font-family:"Unbounded",system-ui,sans-serif;font-weight:500;font-size:1rem;margin:0 0 10px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--chip);border-radius:12px;padding:3px;margin-bottom:12px}
+.seg button{border:0;background:transparent;padding:9px;border-radius:9px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg button[aria-pressed="true"].e{color:var(--out)} .seg button[aria-pressed="true"].i{color:var(--in)}
+.amount{display:flex;align-items:baseline;gap:6px;border-bottom:2px solid var(--line);padding-bottom:4px;margin-bottom:12px}
+.amount:focus-within{border-color:var(--gold)}
+.amount input{flex:1;min-width:0;border:0;background:transparent;font-family:"Unbounded",system-ui,sans-serif;font-size:2rem;font-weight:500;padding:0;outline:none}
+.amount span{font-size:1.4rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border:1px solid transparent;background:var(--chip);border-radius:999px;padding:6px 12px;font-size:.9rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.row{display:flex;gap:8px}
+.field{flex:1;min-width:0;border:1px solid var(--line);background:var(--field);border-radius:12px;padding:10px 12px}
+input[type=date].field{flex:0 0 auto;max-width:150px}
+.primary{width:100%;margin-top:12px;border:0;border-radius:14px;padding:13px;background:var(--gold);color:#1C1608;font-weight:600;font-size:1rem}
+.primary:disabled{opacity:.5;cursor:default}
+.hint{font-size:.85rem;color:var(--muted);margin-top:8px;min-height:1.2em}
+
+.cat{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cat:last-child{border-bottom:0}
+.cat .bar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--chip);overflow:hidden}
+.cat .bar i{display:block;height:100%;background:var(--ink);border-radius:3px}
+.cat .pct{color:var(--muted);font-size:.85rem;margin-left:6px}
+
+.day{margin-top:14px}
+.day h3{font-size:.9rem;color:var(--muted);font-weight:500;margin:0 0 4px;display:flex;justify-content:space-between}
+.entry{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.entry:last-child{border-bottom:0}
+.entry .what{flex:1;min-width:0}
+.entry .what div{font-weight:500}
+.entry .what small{color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry .num{font-size:.95rem;white-space:nowrap}
+.del{border:0;background:transparent;color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:1.1rem}
+.del:hover{background:var(--chip)}
+.empty{color:var(--muted);text-align:center;padding:18px 8px}
+
+details.panel summary{cursor:pointer;font-weight:500;list-style:none;display:flex;justify-content:space-between}
+details.panel summary::-webkit-details-marker{display:none}
+details.panel summary::after{content:"+";color:var(--muted)}
+details[open].panel summary::after{content:"−"}
+.set{display:grid;gap:10px;margin-top:12px}
+.set label{display:grid;gap:4px;font-size:.9rem;color:var(--muted)}
+.ghost{border:1px solid var(--line);background:transparent;border-radius:12px;padding:10px;font-weight:500}
+.quick{background:var(--card);border:2px solid var(--gold);border-radius:18px;padding:6px 6px 6px 14px;display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.quick input{flex:1;min-width:0;border:0;background:transparent;font-size:1.05rem;padding:10px 0;outline:none}
+.quick button{border:0;border-radius:12px;background:var(--gold);color:#1C1608;font-weight:600;padding:10px 14px}
+.alert{display:flex;gap:12px;align-items:flex-start;border-radius:16px;padding:14px 12px 14px 14px;margin:0 0 14px;font-size:.98rem;line-height:1.4;border:2px solid transparent}
+.alert.error{background:var(--errbg);color:var(--errink);border-color:var(--out)}
+.alert.warn{background:var(--warnbg);color:var(--warnink);border-color:var(--gold)}
+.alert .ic{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-family:"Unbounded",system-ui,sans-serif;font-size:.85rem;color:#fff;background:var(--out)}
+.alert.warn .ic{background:var(--gold);color:#1C1608}
+.alert .tx{flex:1;min-width:0}
+.alert .tx b{display:block;margin-bottom:2px}
+.alert .x{border:0;background:transparent;color:inherit;font-size:1.3rem;line-height:1;width:32px;height:32px;margin:-4px -4px 0 0;border-radius:50%}
+.quick.bad{border-color:var(--out)}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.shake{animation:shake .35s ease}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}}
+.toastbox.err{background:var(--out);color:#fff}
+.toastbox.err button{color:#fff;text-decoration:underline}
+.hint.err{color:var(--out);font-weight:500}
+.qhint{font-size:.85rem;color:var(--muted);margin:0 4px 14px;min-height:1.2em}
+.qhint .undo{border:0;background:none;color:var(--gold);font-weight:600;padding:0 0 0 6px;text-decoration:underline}
+details.plain summary{cursor:pointer;font-family:"Unbounded",system-ui,sans-serif;font-weight:500;font-size:1rem;list-style:none;margin-bottom:10px}
+details.plain summary::-webkit-details-marker{display:none}
+details.plain summary::after{content:" +";color:var(--muted)}
+details[open].plain summary::after{content:" −"}
+.toastwrap{position:fixed;left:0;right:0;bottom:0;padding:0 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none;z-index:10}
+.toastbox{pointer-events:auto;max-width:528px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--ink);color:var(--paper);border-radius:14px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:.95rem}
+.toastbox button{border:0;background:transparent;color:var(--gold);font-weight:600;padding:4px 2px;white-space:nowrap}
+.entry .what{cursor:pointer;border-radius:8px}
+.entry.editing{background:var(--chip);border-radius:10px;padding-left:8px;padding-right:4px}
+.ghost.wide{width:100%;margin-top:8px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--chip);border-radius:14px;padding:4px;margin:0 0 16px}
+.tabs button{border:0;background:transparent;padding:10px;border-radius:10px;font-weight:500;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{font-size:.75rem;color:var(--muted);text-align:center;padding-bottom:2px}
+.cal .wd.we{color:var(--out)}
+.cell{aspect-ratio:1/1.05;border:1px solid var(--line);border-radius:10px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background:var(--card);font-size:.8rem;position:relative;min-width:0}
+.cell .dn{font-weight:500}
+.cell .sp{font-family:"Unbounded",system-ui,sans-serif;font-size:.62rem;white-space:nowrap;letter-spacing:-.02em}
+.cell.has{background:color-mix(in srgb, var(--out) calc(var(--a) * 1%), var(--card))}
+.cell.has.hot .sp,.cell.has.hot .dn{color:#fff}
+.cell.over::after{content:"";position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--out);box-shadow:0 0 0 1.5px var(--card)}
+.cell.today{border-color:var(--gold);border-width:2px}
+.cell.sel{outline:2.5px solid var(--ink);outline-offset:1px}
+.cell.future{opacity:.45}
+.cell.blank{border:0;background:transparent}
+.daycard h2{margin-bottom:2px}
+.daysub{color:var(--muted);font-size:.9rem;margin-bottom:12px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.normline{font-size:.92rem;padding:10px 12px;border-radius:12px;background:var(--chip);margin-bottom:12px}
+.normline b{font-family:"Unbounded",system-ui,sans-serif;font-weight:500}
+.drow{display:grid;grid-template-columns:4.2rem 1fr auto;align-items:center;gap:10px;width:100%;border:0;background:transparent;padding:9px 0;border-bottom:1px solid var(--line);text-align:left}
+.drow:last-child{border-bottom:0}
+.drow .dd{font-weight:500}.drow .dd small{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
+.drow .bar{height:8px;border-radius:4px;background:var(--chip);overflow:hidden}
+.drow .bar i{display:block;height:100%;background:var(--out);border-radius:4px}
+.drow.sel .dd{color:var(--gold)}
+.ghost.small{padding:8px 12px;font-size:.9rem;margin-top:10px;width:100%}
+.ghostlink{border:0;background:none;padding:0;color:var(--muted);font:inherit;font-weight:500}
+.backdrop{position:fixed;inset:0;background:rgba(10,16,24,.55);display:flex;align-items:flex-end;justify-content:center;z-index:20;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+@media (min-width:600px){.backdrop{align-items:center}}
+.dialog{background:var(--card);color:var(--ink);border-radius:20px;padding:20px;max-width:440px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.dialog h3{font-family:"Unbounded",system-ui,sans-serif;font-weight:500;font-size:1.05rem;margin:0 0 8px}
+.dialog p{margin:0 0 6px;color:var(--muted)}
+.dialog .what{margin:12px 0 18px;padding:12px;border-radius:12px;background:var(--chip);display:flex;justify-content:space-between;gap:10px}
+.dialog .what b{font-weight:500}
+.dialog .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dialog .btns button{border-radius:14px;padding:13px;font-weight:600;font-size:1rem}
+.dialog .cancel{border:1px solid var(--line);background:transparent}
+.dialog .danger{border:0;background:var(--out);color:#fff}
+.dialog .danger:disabled{opacity:.6}
+.small{font-size:.88rem;color:var(--muted);margin:0}
+.small b{color:var(--ink);font-weight:500}
+.alert .mini-btn{border:0;border-radius:10px;background:var(--gold);color:#1C1608;font-weight:600;padding:8px 12px;align-self:center;white-space:nowrap}
+.note{font-size:.82rem;color:var(--muted);text-align:center;margin-top:24px}
+.loading{text-align:center;color:var(--muted);padding:60px 0}
+@media (prefers-reduced-motion:reduce){.ruler .fill{transition:none}}
+</style>
+</head>
+<body>
+<div id="toast" class="toastwrap" aria-live="polite"></div>
+<div id="modal"></div>
+<div class="wrap" id="app"><div class="loading">Завантажую бюджет…</div></div>
+
+<script>
+(function(){
+const EXP = ["Продукти","Кафе","Транспорт","Житло","Комуналка","Розстрочка","Побут","Розваги","Спорт","Одяг","Краса","Здоров'я","Підписки","Освіта","Подарунки","Інше"];
+const INC = ["Зарплата","Підробіток","Подарунок","Повернення боргу","Інше"];
+const MONTHS = ["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+
+const pad = n => String(n).padStart(2,"0");
+const todayISO = () => { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+const monthOf = iso => iso.slice(0,7);
+const fmt = n => Math.round(n).toLocaleString("uk-UA").replace(/,/g," ");
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shiftMonth = (key,d) => { let [y,m]=key.split("-").map(Number); m+=d; while(m>12){m-=12;y++} while(m<1){m+=12;y--} return y+"-"+pad(m); };
+const daysIn = key => { const [y,m]=key.split("-").map(Number); return new Date(y,m,0).getDate(); };
+
+const S = {
+  month: monthOf(todayISO()),
+  data: {},            // month -> {entries:[]}
+  settings: {income:0, limit:0},
+  type: "exp", cat: "Продукти",
+  store: null, msg: ""
+};
+
+/* ---------- storage ---------- */
+function makeLocal(){
+  const ls = (k,v) => {
+    if(v===undefined){ try{ const r=localStorage.getItem(k); return r?JSON.parse(r):null }catch(e){ return null } }
+    try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){ throw {code: e&&e.name==="QuotaExceededError"?"quota_exceeded":"unavailable", message:String(e&&e.message||e)} }
+  };
+  return {
+    kind:"local",
+    watchMonth(key,cb){ cb(ls("bt:m:"+key) || {entries:[]}); return ()=>{} },
+    watchSettings(cb){ cb(ls("bt:settings") || {income:0,limit:0}); return ()=>{} },
+    async getMonth(key){ return ls("bt:m:"+key) || {entries:[]} },
+    async allMonths(){ const out={}; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith("bt:m:")) out[k.slice(5)]=ls(k) } }catch(e){} return out },
+    async saveMonth(key,obj){ ls("bt:m:"+key,obj) },
+    async saveSettings(obj){ ls("bt:settings",obj) }
+  };
+}
+let unMonth = ()=>{};
+function subscribeMonth(){
+  unMonth();
+  const key=S.month;
+  unMonth = S.store.watchMonth(key, d=>{
+    S.data[key] = {entries: Array.isArray(d && d.entries) ? JSON.parse(JSON.stringify(d.entries)) : []};
+    render();
+  });
+}
+async function persistMonth(key){
+  try{ await S.store.saveMonth(key, {entries:S.data[key].entries}); }
+  catch(e){ showAlert("error","Запис не збережено","Він є на екрані, але після оновлення сторінки зникне. "+errText(e)); }
+}
+
+/* ---------- quick parser ---------- */
+const LET="a-zа-яіїєґёыэъ'";
+const LOOK={a:"а",e:"е",o:"о",p:"р",c:"с",x:"х",y:"у",k:"к",m:"м",t:"т",h:"н",b:"в"};
+const normT = s => (" "+s+" ").toLowerCase().replace(/[’ʼ`´‘]/g,"'").replace(/i/g,"і")
+  .replace(/[^\s\d.,:;+\-*()]+/g, w => /[а-яіїєґ]/.test(w) ? w.replace(/[aeopcxykmthb]/g,ch=>LOOK[ch]) : w)
+  .replace(/\s+/g," ");
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\&]/g,"\\$&");
+function kwRe(k){ let end=false; k=normT(k).trim(); if(k.endsWith("$")){ end=true; k=k.slice(0,-1) } return new RegExp("(^|[^"+LET+"])"+reEsc(k)+(end?"(?=[^"+LET+"]|$)":""),"i"); }
+function compile(map){ return Object.entries(map).map(([c,ks])=>[c,ks.map(kwRe)]); }
+function findIn(text,cmap){ for(const [c,res] of cmap) if(res.some(r=>r.test(text))) return c; return null; }
+
+// Order matters: more specific categories first.
+const EXP_KW = compile({
+  "Краса":["краса","перукар","стрижк","барбер","манікюр","педикюр","косметик","шампун","бритв","парфум","салон крас"],
+  "Підписки":["підписк","netflix","нетфлікс","spotify","спотіф","youtube","ютуб","icloud","google one","chatgpt","claude","megogo","мегого","sweet tv","apple music"],
+  "Побут":["побут","хімі","порошок","посуд","ikea","ікеа","епіцентр","jysk","нова пошта","пошт","нп$","ремонт","інструмент","лампоч","rozetka","розетк","aliexpress","техні"],
+  "Кафе":["кафе","кава","кав$","каву","кави","кавою","кавусик","кофе","coffee","латте","капучин","американо","еспресо","раф$","ресторан","обід","обед","вечер","сніданок","ланч","бургер","піц","пицц","суші","суши","роли","шаурм","шаверм","глово","glovo","bolt food","доставк","макдон","мак$","kfc","кфс","пузат","перекус","снек","чай$","чаю","десерт","круасан","кондитер","пекарн","випічк","морозив","смузі","лимонад","енергетик","кола$"],
+  "Транспорт":["транспорт","таксі","такси","taxi","uber","убер","bolt","болт","uklon","уклон","маршрут","метро","автобус","тролейбус","трамва","електричк","потяг","поїзд","укрзалізн","проїзд","бензин","пальн","заправ","wog","окко","okko","socar","upg$","парков","паркуванн","автомийк","шиномонтаж"],
+  "Продукти":["продукт","сільпо","сильпо","атб","novus","новус","фора","ашан","auchan","варус","metro","копійк","fozzy","фоззі","екомаркет","еко маркет","ринок","базар","супермаркет","маркет","магазин","хліб","молок","кефір","сир$","сиру","м'яс","мясо","курк","яйц","овоч","фрукт","круп","макарон","рис$","гречк","вода$","води$","їжа","їжу","харчі"],
+  "Житло":["житло","оренд","квартир","ріелтор","рієлтор","ріелтер"],
+  "Комуналка":["комуналк","комунальн","світло","електроенерг","газ$","газу","водоканал","водопостач","інтернет","телефон","мобільн","поповн","київстар","kyivstar","водафон","vodafone","lifecell","лайф$","осбб","квартплат","опаленн"],
+  "Розстрочка":["розстроч","кредит","борг","позик","ліміт"],
+  "Розваги":["розваг","кіно","бар$","пиво","пива","алкогол","вино","концерт","театр","квест","боулінг","більярд","кальян","гра$","ігр","steam","playstation","вечірк","клуб","фестив","квиток","квитки"],
+  "Спорт":["спорт","зал$","залу","тренуванн","тренер","протеїн","gym","фітнес","басейн","йога","абонемент"],
+  "Одяг":["одяг","взутт","кросів","кеди","футболк","худі","штани","джинс","куртк","шкарпет","носки","сороч","сукн","zara","reserved"],
+  "Здоров'я":["здоров","аптек","ліки","ліків","таблет","вітамін","лікар","стоматолог","зуб","аналіз","клінік","окуляр"],
+  "Освіта":["освіт","курс","книг","навчан","урок","репетит","англійськ","udemy","coursera"],
+  "Подарунки":["подарун","подарок","квіти","квітів","букет","сувенір"],
+  "Інше":["інше"]
+});
+const INC_KW = compile({
+  "Подарунок":["подарували","подарунок від","подарували гроші"],
+  "Повернення боргу":["повернули","повернув мені","повернула мені","віддали борг","віддав мені","віддала мені","кешбек","cashback","повернення"],
+  "Зарплата":["зарплат","зп$","зпшк","аванс","прем","бонус$"],
+  "Підробіток":["підробіт","фріланс","мафі","корпоратив","гонорар","продав","продала","продаж"],
+  "Інше":["дохід","доходу","прибут","отримав","отримала","скинули","переказали","надійшл"]
+});
+
+const MONTH_STEMS=[["січ",1],["лют",2],["берез",3],["квіт",4],["трав",5],["черв",6],["лип",7],["серп",8],["верес",9],["жовт",10],["листоп",11],["груд",12]];
+const WDAY=[["понеділ",1],["пн",1],["вівтор",2],["вт",2],["серед",3],["ср",3],["четвер",4],["чт",4],["п'ятниц",5],["пятниц",5],["пт",5],["субот",6],["сб",6],["неділ",0],["нд",0]];
+const isoD = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const dOf = iso => new Date(iso+"T12:00:00");
+function mkDate(dd,mm,yy,today){
+  const t=dOf(today);
+  let y = yy ? (yy<100?2000+yy:yy) : t.getFullYear();
+  const d=new Date(y,mm-1,dd,12);
+  if(d.getMonth()!==mm-1 || d.getDate()!==dd) return null;
+  if(!yy && (d - t) > 31*864e5){ d.setFullYear(y-1); }
+  return isoD(d);
+}
+
+const B = "(?:^|(?<=[^"+LET+"\\d]))";      // word start
+const E = "(?=[^"+LET+"]|$)";              // word end
+const RX = {
+  rel: new RegExp(B+"(позавчора|позавчера|вчора|вчера|сьогодні|сегодня)"+E,"i"),
+  wd: new RegExp(B+"(?:(?:в|у|во)\\s+)?(понеділ["+LET+"]*|вівтор["+LET+"]*|серед[уа]|четвер["+LET+"]*|п'?ятниц["+LET+"]*|субот["+LET+"]*|неділ["+LET+"]*|пн|вт|ср|чт|пт|сб|нд)"+E,"i"),
+  dmon: new RegExp("(?:^|(?<=[^\\d.,]))(\\d{1,2})\\s*(січ|лют|берез|квіт|трав|черв|лип|серп|верес|жовт|листоп|груд)["+LET+"]*\\.?"+E,"i"),
+  numStart: /^\s*(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?\s*:?(?=\s|$)/,
+  numYear: /(?:^|(?<=\s))(\d{1,2})[./](\d{1,2})[./](\d{2,4})(?=\s|:|$)/,
+  numColon: /(?:^|(?<=\s))(\d{1,2})[./](\d{1,2})\s*:/,
+  numEnd: /(?:^|(?<=\s))(\d{1,2})[./](\d{1,2})\s*$/
+};
+function extractDate(w,today){
+  let m, date=null;
+  const cut = (mm)=>{ w = (w.slice(0,mm.index)+" "+w.slice(mm.index+mm[0].length)); };
+  if((m=w.match(RX.rel))){
+    const k=m[1].toLowerCase(); const d=dOf(today);
+    if(k.startsWith("поза")) d.setDate(d.getDate()-2); else if(k.startsWith("вчор")||k.startsWith("вчер")) d.setDate(d.getDate()-1);
+    date=isoD(d); cut(m);
+  } else if((m=w.match(RX.wd))){
+    const k=normT(m[1]).trim().replace(/^п'?ят/,"п'ят");
+    const target=(WDAY.find(([s])=>k.startsWith(normT(s).trim()))||[0,null])[1];
+    if(target!==null){ const d=dOf(today); let back=(d.getDay()-target+7)%7; d.setDate(d.getDate()-back); date=isoD(d); cut(m); }
+  } else if((m=w.match(RX.dmon))){
+    const mon=(MONTH_STEMS.find(([s])=>m[2].toLowerCase().startsWith(s))||[0,0])[1];
+    const r=mkDate(+m[1],mon,0,today); if(r){ date=r; cut(m); }
+  } else {
+    for(const key of ["numYear","numColon","numStart"]){
+      m=w.match(RX[key]);
+      if(m){ const r=mkDate(+m[1],+m[2],m[3]?+m[3]:0,today); if(r){ date=r; cut(m); break } }
+    }
+    if(!date && (m=w.match(RX.numEnd))){
+      const rest=w.slice(0,m.index);
+      if(/\d/.test(rest)){ const r=mkDate(+m[1],+m[2],0,today); if(r){ date=r; cut(m); } }
+    }
+  }
+  return {w,date};
+}
+
+const TERM="\\d+(?:[.,]\\d+)?(?:\\s*(?:к|k|тис\\.?)(?![" + LET + "]))?";
+const OP="(?:\\s*[*×хx]\\s*(?=\\d)|[+\\-]\\s*(?=\\d)|\\s+[+\\-]\\s+(?=\\d)|\\s+(?=\\d))";
+const EXPR_RE=()=>new RegExp("([+\\-])?\\s*("+TERM+"(?:"+OP+TERM+")*)","gi");
+
+function evalExpr(expr){
+  const toks=expr.match(/\d+(?:[.,]\d+)?(?:\s*(?:к|k|тис\.?)(?![а-яіїєґa-z]))?|[+\-*×хx]/gi)||[];
+  let total=0, term=null, sign=1, pendingMul=false, lastNum=false;
+  const num=s=>{ const mm=s.match(/^(\d+(?:[.,]\d+)?)\s*(к|k|тис\.?)?$/i); return Number(mm[1].replace(",","."))*(mm[2]?1000:1) };
+  for(const t of toks){
+    if(/^\d/.test(t)){
+      const v=num(t);
+      if(term===null) term=v;
+      else if(pendingMul) term*=v;
+      else { total+=sign*term; sign=1; term=v; }  // bare space between numbers = add
+      pendingMul=false; lastNum=true;
+    } else if(/[*×хx]/i.test(t)){ pendingMul=true; lastNum=false; }
+    else { if(term!==null){ total+=sign*term; term=null } sign = t==="-"?-1:1; pendingMul=false; lastNum=false; }
+  }
+  if(term!==null) total+=sign*term;
+  return Math.round(total*100)/100;
+}
+
+const CONNECT=/^(?:\s|,|\.|:|;|—|-|\+|і|й|та|ще|плюс|and)+(?=\s|$)|^[\s,.:;—\-]+/i;
+function cleanWords(s){ let p; do{ p=s; s=s.replace(CONNECT,"") }while(s!==p); return s.replace(/[\s,.:;—\-]+$/,"").replace(/\s+/g," ").trim(); }
+
+function prep(chunk){
+  let w=" "+chunk.replace(/[’ʼ`´‘]/g,"'")+" ";
+  w=w.replace(/(грн\.?|гривень|гривні|гривня|гривн[а-яіїєґ]*|₴|uah)/gi," ");
+  w=w.replace(/([a-zа-яіїєґ'])(\d)/gi,"$1 $2");
+  w=w.replace(/(\d)(?!(?:к|k|тис)(?![a-zа-яіїєґ])|[хx×]\s*\d)([a-zа-яіїєґ'])/gi,"$1 $2");
+  w=w.replace(/(^|[^\d.,])(\d{1,2})((?:[ \u00a0]\d{3})+)(?![\d])/g,(all,pre,a,b)=>pre+a+b.replace(/[ \u00a0]/g,""));
+  return w;
+}
+
+function parseQuick(str, today, defDate){
+  const out=[], bad=[];
+  let cur=null, prevWords="", prevSign="";
+  const chunks=str.split(/[;\n]+|,(?!\d)/).map(x=>x.trim()).filter(Boolean);
+  for(const chunk of chunks){
+    let {w,date}=extractDate(prep(chunk),today);
+    if(date) cur=date;
+    const useDate=cur||defDate;
+    const re=EXPR_RE(); const ms=[]; let m;
+    while((m=re.exec(w))){ if(!m[2]) { re.lastIndex++; continue } ms.push({sign:m[1]||"", expr:m[2].trim(), start:m.index, end:m.index+m[0].length}); }
+    if(!ms.length){ if(!date) bad.push(chunk); continue }
+    const lead=w.slice(0,ms[0].start);
+    const wordFirst=/[a-zа-яіїєґ]/i.test(lead);
+    let groups=ms.map((x,i)=>{
+      let words;
+      if(wordFirst){ words=w.slice(i?ms[i-1].end:0, x.start); if(i===ms.length-1) words+=" "+w.slice(x.end); }
+      else { words=w.slice(x.end, i<ms.length-1?ms[i+1].start:w.length); if(i===0) words=lead+" "+words; }
+      return {sign:x.sign, expr:x.expr, words:cleanWords(words)};
+    });
+    // a bare number group without its own words is part of the previous amount
+    const merged=[];
+    for(const g of groups){
+      if(merged.length && !g.words){ const p=merged[merged.length-1]; p.expr+=(g.sign==="-"?"-":"+")+g.expr; }
+      else merged.push(g);
+    }
+    if(merged.length===1 && !merged[0].words && prevWords){ merged[0].words=prevWords; if(!merged[0].sign) merged[0].sign=prevSign; }
+    for(const g of merged){
+      prevWords=g.words; prevSign=g.sign;
+      const amount=evalExpr(g.expr);
+      if(!(amount>0)){ bad.push(chunk); continue }
+      if(amount>5e6){ bad.push(chunk+" (завелика сума)"); continue }
+      const t=normT(g.words);
+      let type, cat;
+      const inc=findIn(t,INC_KW), exp=findIn(t,EXP_KW);
+      if(g.sign==="+"){ type="inc"; cat=inc||"Інше"; }
+      else if(g.sign==="-"){ type="exp"; cat=exp||"Інше"; }
+      else if(inc){ type="inc"; cat=inc; }
+      else { type="exp"; cat=exp||"Інше"; }
+      let note=g.words;
+      if(normT(note).trim()===normT(cat).trim()) note="";
+      const exprClean=g.expr.replace(/\s*([+\-*×хx])\s*/gi,"$1").replace(/\s+/g,"+");
+      if(/[+\-*×хx]|\d\s+\d/i.test(g.expr)) note=(note?note+" ":"")+"("+exprClean+")";
+      note = note.charAt(0).toUpperCase()+note.slice(1);
+      out.push({type,amount,cat,note:note.slice(0,80),date:useDate});
+    }
+  }
+  return {out,bad};
+}
+
+/* ---------- alerts ---------- */
+function showAlert(kind, title, text){
+  S.alert={kind,title,text}; S.qmsg="";
+  if(kind==="error"){ try{ navigator.vibrate && navigator.vibrate([60,40,60]) }catch(_){} }
+  S.shake=true; render();
+  if(kind==="error"){ const el=document.getElementById("alert"); if(el && el.scrollIntoView) el.scrollIntoView({block:"center",behavior:"smooth"}); }
+}
+const errText = e => { const c=e&&e.code; return ({quota_exceeded:"Сховище заповнене. Видали старі записи.",unavailable:"Сервер тимчасово недоступний. Спробуй ще раз за хвилину.",revoked:"Доступ до даних закрито. Онови сторінку.",not_granted:"Немає доступу до сховища. Онови сторінку.",invalid_argument:"Сервер не прийняв дані."})[c] || (e&&e.message) || String(e); };
+const APP_VERSION="1.0";
+function lastBackupText(){ const t=meta().lastBackup; if(!t) return "ще не робилась"; const days=Math.floor((Date.now()-t)/864e5); return days<=0?"сьогодні":days===1?"вчора":days+" дн. тому"; }
+function needBackup(){
+  const t=meta().lastBackup; let count=0;
+  try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith("bt:m:")){ const v=JSON.parse(localStorage.getItem(k)||"{}"); count+=(v.entries||[]).length } } }catch(e){}
+  Object.values(S.data).forEach(m=>{ count=Math.max(count, (m.entries||[]).length) });
+  if(count<5) return false;
+  return !t || (Date.now()-t) > 7*864e5;
+}
+function parseCsv(text){
+  text=text.replace(/^\ufeff/,"");
+  const first=text.split(/\r?\n/)[0]||""; const sep=(first.match(/;/g)||[]).length>=(first.match(/,/g)||[]).length?";":",";
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ cur+='"'; i++ } else q=false } else cur+=c }
+    else if(c==='"') q=true; else if(c===sep){ row.push(cur); cur="" } else if(c==="\n"){ row.push(cur.replace(/\r$/,"")); rows.push(row); row=[]; cur="" } else cur+=c;
+  }
+  if(cur||row.length){ row.push(cur.replace(/\r$/,"")); rows.push(row) }
+  return rows.filter(r=>r.some(v=>v.trim()));
+}
+async function importCsv(file){
+  try{
+    const text = file.text ? await file.text() : await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); r.readAsText(file,"utf-8") });
+    const rows=parseCsv(text);
+    if(rows.length<2) throw {message:"у файлі немає записів"};
+    const h=rows[0].map(x=>x.trim().toLowerCase());
+    const ix=n=>h.findIndex(x=>x.startsWith(n));
+    const iD=ix("дата"), iT=ix("тип"), iC=ix("катег"), iS=ix("сум"), iN=ix("комент"), iI=ix("id");
+    if(iD<0||iS<0) throw {message:"не знайшов колонки «Дата» і «Сума» — це точно файл з трекера?"};
+    const all=await S.store.allMonths(); Object.keys(S.data).forEach(k=>{ all[k]={entries:S.data[k].entries} });
+    const ids=new Set(), sigs=new Set();
+    Object.values(all).forEach(m=>((m&&m.entries)||[]).forEach(e=>{ ids.add(e.id); sigs.add([e.date,e.type,e.cat,e.amount,e.note||""].join("|")) }));
+    const add=[]; let dup=0, bad=0;
+    rows.slice(1).forEach((r,i)=>{
+      let date=(r[iD]||"").trim(); const m=date.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if(m) date=m[3]+"-"+pad(+m[2])+"-"+pad(+m[1]);
+      const amount=Math.round(Number(String(r[iS]||"").replace(/\s/g,"").replace(",","."))*100)/100;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !(amount>0)){ bad++; return }
+      const type=/дох|inc/i.test(r[iT]||"")?"inc":"exp";
+      const cat=((r[iC]||"").trim())||"Інше"; const note=((iN>=0?r[iN]:"")||"").trim();
+      const id=iI>=0&&r[iI]?r[iI].trim():"";
+      const sig=[date,type,cat,amount,note].join("|");
+      if((id&&ids.has(id))||sigs.has(sig)){ dup++; return }
+      ids.add(id); sigs.add(sig);
+      add.push({id:id||newId(i), type, amount, cat, note, date, ts:Date.now()+i});
+    });
+    if(!add.length){ showAlert("warn","Нічого нового", dup? "Усі "+dup+" записів уже є в застосунку." : "Не знайшов записів, які можна імпортувати."); return }
+    await addEntries(add);
+    S.alert=null; toast("Імпортовано: "+add.length+(dup?" · уже були: "+dup:"")+(bad?" · пропущено: "+bad:""), ()=>removeIds(add.map(e=>e.id)));
+  }catch(e){ showAlert("error","Не вдалося імпортувати",errText(e)); }
+}
+/* ---------- confirm ---------- */
+function confirmBox({title,text,whatL,whatR,ok,hold}){
+  return new Promise(res=>{
+    const m=document.getElementById("modal");
+    m.innerHTML=`<div class="backdrop" id="bd"><div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlgT">
+      <h3 id="dlgT">${esc(title)}</h3>${text?`<p>${esc(text)}</p>`:""}
+      ${whatL?`<div class="what"><b>${esc(whatL)}</b><span class="num">${esc(whatR||"")}</span></div>`:""}
+      <div class="btns"><button class="cancel" id="dlgNo">Скасувати</button><button class="danger" id="dlgOk"${hold?" disabled":""}>${esc(ok)}</button></div></div></div>`;
+    const done=v=>{ m.innerHTML=""; document.removeEventListener("keydown",esc_); res(v) };
+    const esc_=e=>{ if(e.key==="Escape") done(false) };
+    document.addEventListener("keydown",esc_);
+    document.getElementById("bd").onclick=e=>{ if(e.target.id==="bd") done(false) };
+    document.getElementById("dlgNo").onclick=()=>done(false);
+    const okb=document.getElementById("dlgOk"); okb.onclick=()=>done(true);
+    if(hold){ let n=hold; okb.textContent=ok+" ("+n+")"; const t=setInterval(()=>{ n--; if(n<=0){ clearInterval(t); okb.disabled=false; okb.textContent=ok } else okb.textContent=ok+" ("+n+")" },1000); }
+    document.getElementById("dlgNo").focus();
+  });
+}
+/* ---------- actions ---------- */
+const newId = i => Date.now().toString(36)+(i||0)+Math.random().toString(36).slice(2,6);
+async function ensureMonth(k){
+  if(S.data[k]) return;
+  try{ const d=await S.store.getMonth(k); if(!S.data[k]) S.data[k]={entries:Array.isArray(d&&d.entries)?JSON.parse(JSON.stringify(d.entries)):[]}; }
+  catch(e){ throw e }
+}
+async function addEntries(list){
+  const months=[...new Set(list.map(e=>monthOf(e.date)))];
+  for(const k of months) await ensureMonth(k);
+  const now=Date.now();
+  list.forEach(e=>{ e.updatedAt=now; S.data[monthOf(e.date)].entries.push(e) });
+  render(); months.forEach(persistMonth);
+}
+function removeIds(ids){
+  logDeleted(ids);
+  const months=[];
+  Object.keys(S.data).forEach(k=>{ const n=S.data[k].entries.length; S.data[k].entries=S.data[k].entries.filter(e=>!ids.includes(e.id)); if(S.data[k].entries.length!==n) months.push(k); });
+  render(); months.forEach(persistMonth);
+}
+function findEntry(id){ for(const k of Object.keys(S.data)){ const e=S.data[k].entries.find(x=>x.id===id); if(e) return e } return null }
+
+let toastTimer=null;
+function toast(text, undo){
+  S.toast={text,undo}; renderToast();
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ S.toast=null; renderToast() }, undo?7000:3500);
+}
+function renderToast(){
+  const el=document.getElementById("toast"); if(!el) return;
+  if(!S.toast){ el.innerHTML=""; return }
+  el.innerHTML=`<div class="toastbox" role="status"><span>${esc(S.toast.text)}</span>${S.toast.undo?'<button id="tundo">Скасувати</button>':""}</div>`;
+  const u=document.getElementById("tundo"); if(u) u.onclick=()=>{ const f=S.toast.undo; S.toast=null; renderToast(); f(); };
+}
+const ddmm = iso => { const [,m,d]=iso.split("-"); return Number(d)+"."+m };
+
+let qBusy=false;
+async function quickAdd(){
+  if(qBusy) return; qBusy=true;
+  try{ await quickAddInner() }
+  catch(e){ showAlert("error","Щось пішло не так",errText(e)+". Скинь мені скріншот і що саме вводив."); }
+  finally{ qBusy=false }
+}
+async function quickAddInner(){
+  const inp=document.getElementById("quick"); const val=inp.value.trim();
+  if(!val){ inp.focus(); return }
+  const today=todayISO(), key=S.month;
+  const def = key===monthOf(today) ? today : (key<monthOf(today) ? key+"-"+pad(daysIn(key)) : key+"-01");
+  const {out,bad}=parseQuick(val, today, def);
+  if(!out.length){ showAlert("warn","Нічого не додано","Не знайшов суму в «"+(bad.join("», «")||val)+"». Напиши, наприклад: кава 85"); return }
+  const now=Date.now();
+  const entries=out.map((e,i)=>({...e,id:newId(i),ts:now+i}));
+  inp.value="";
+  S.alert=null;
+  S.qmsg="Додано: "+entries.map(e=>`${e.cat} ${e.type==="inc"?"+":"−"}${fmt(e.amount)}${e.date!==today?" ("+ddmm(e.date)+")":""}`).join(", ");
+  const badNote = bad.length ? "Не зрозумів: «"+bad.join("», «")+"». Ці частини не додано — перевір і впиши окремо." : "";
+  try{ await addEntries(entries) }catch(e){ showAlert("error","Запис не додано",errText(e)); return }
+  if(badNote) showAlert("warn","Додано не все",badNote);
+  const other=entries.filter(e=>monthOf(e.date)!==S.month);
+  toast(entries.length===1?"Запис додано"+(other.length?" в "+MONTHS_GEN[Number(other[0].date.slice(5,7))-1]:""):`Додано записів: ${entries.length}`+(other.length?` (${other.length} — в інший місяць)`:""), ()=>{ removeIds(entries.map(e=>e.id)); S.qmsg="Скасовано."; render(); });
+  const q=document.getElementById("quick"); if(q) q.focus();
+}
+const MONTHS_GEN=["січень","лютий","березень","квітень","травень","червень","липень","серпень","вересень","жовтень","листопад","грудень"];
+
+/* ---------- calc ---------- */
+function totals(key){
+  const es=(S.data[key]||{entries:[]}).entries;
+  let inc=0,exp=0; const byCat={};
+  es.forEach(e=>{ if(e.type==="inc") inc+=e.amount; else { exp+=e.amount; byCat[e.cat]=(byCat[e.cat]||0)+e.amount } });
+  return {inc,exp,byCat,es};
+}
+
+/* ---------- render ---------- */
+function render(){
+  const app=document.getElementById("app");
+  const key=S.month;
+  const g=id=>document.getElementById(id);
+  const keep = (S._last===key && g("amt")) ? {q:g("quick").value,a:g("amt").value,n:g("note").value,d:g("date").value,f:document.activeElement&&document.activeElement.id} : null;
+  S._last=key;
+  if(!S.data[key]){ app.innerHTML='<div class="loading">Завантажую бюджет…</div>'; return }
+  const {inc,exp,byCat,es}=totals(key);
+  const [y,m]=key.split("-").map(Number);
+  const isCurrent = key===monthOf(todayISO());
+  const base = S.settings.limit>0 ? S.settings.limit : (Math.max(inc, S.settings.income) || 0);
+  const baseLabel = S.settings.limit>0 ? "ліміту" : "доходу";
+  const left = base - exp;
+  const pct = base>0 ? Math.min(100, exp/base*100) : 0;
+  let allow="";
+  if(isCurrent && base>0){
+    const d=new Date().getDate(); const rem=daysIn(key)-d+1;
+    allow = left>0
+      ? `До кінця місяця ${rem} дн. — можна витрачати близько <b>${fmt(left/rem)} ₴</b> на день.`
+      : `Ти вже вийшов за межі ${baseLabel} на <b>${fmt(-left)} ₴</b>.`;
+  } else if(base<=0){
+    allow = `Додай дохід або встанови ліміт у налаштуваннях — тоді тут з'явиться денна норма.`;
+  }
+
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const maxCat = cats.length? cats[0][1] : 1;
+
+  const days={};
+  es.slice().sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0)).forEach(e=>{ (days[e.date]=days[e.date]||[]).push(e) });
+  const dayKeys=Object.keys(days);
+
+  const ed=S.editing;
+  const tab=S.tab||"month";
+  const today=todayISO();
+  const nDays=daysIn(key);
+  const norm = base>0 ? base/nDays : 0;
+  const dayTot={};
+  es.forEach(e=>{ const t=dayTot[e.date]||(dayTot[e.date]={exp:0,inc:0,byCat:{},list:[]}); t.list.push(e); if(e.type==="inc") t.inc+=e.amount; else { t.exp+=e.amount; t.byCat[e.cat]=(t.byCat[e.cat]||0)+e.amount } });
+  if(!S.selDay || monthOf(S.selDay)!==key){ const withData=Object.keys(dayTot).sort(); S.selDay = isCurrent ? today : (withData.length? withData[withData.length-1] : key+"-01"); }
+  const sel=S.selDay, st=dayTot[sel]||{exp:0,inc:0,byCat:{},list:[]};
+  const maxDay=Math.max(1,...Object.values(dayTot).map(t=>t.exp));
+  const scale=Math.max(maxDay, norm||0);
+  const short=n=> n>=1000 ? (Math.round(n/100)/10).toString().replace(".",",")+"к" : String(Math.round(n));
+  const WDN=["Неділя","Понеділок","Вівторок","Середа","Четвер","П'ятниця","Субота"];
+  const WDS=["нд","пн","вт","ср","чт","пт","сб"];
+  const MG=["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"];
+  const longDate=iso=>{ const d=dOf(iso); return WDN[d.getDay()]+", "+d.getDate()+" "+MG[d.getMonth()] };
+  const offset=(new Date(y,m-1,1).getDay()+6)%7;
+  let cal=["Пн","Вт","Ср","Чт","Пт","Сб","Нд"].map((w,i)=>`<div class="wd${i>4?" we":""}">${w}</div>`).join("");
+  for(let i=0;i<offset;i++) cal+=`<div class="cell blank" aria-hidden="true"></div>`;
+  for(let dn=1; dn<=nDays; dn++){
+    const iso=key+"-"+pad(dn), t=dayTot[iso];
+    const a = t&&t.exp ? Math.round(18+ (t.exp/scale)*72) : 0;
+    const cls=["cell", t&&t.exp?"has":"", a>55?"hot":"", norm&&t&&t.exp>norm?"over":"", iso===today?"today":"", iso===sel?"sel":"", iso>today?"future":""].filter(Boolean).join(" ");
+    cal+=`<button class="${cls}" style="--a:${a}" data-day="${iso}" aria-label="${dn} ${MG[m-1]}${t&&t.exp?", витрачено "+fmt(t.exp)+" гривень":""}"><span class="dn">${dn}</span><span class="sp">${t&&t.exp?short(t.exp):(t&&t.inc?"+":"")}</span></button>`;
+  }
+  const spentDays=Object.keys(dayTot).filter(d=>dayTot[d].exp>0);
+  const passed = isCurrent ? dOf(today).getDate() : (key<monthOf(today)? nDays : 0);
+  const avg = passed ? exp/passed : 0;
+  const top = spentDays.sort((a,b)=>dayTot[b].exp-dayTot[a].exp)[0];
+  const dayCats=Object.entries(st.byCat).sort((a,b)=>b[1]-a[1]);
+  const entryRow=e=>`<div class="entry${ed&&ed.id===e.id?" editing":""}"><div class="what" data-edit="${esc(e.id)}" role="button" tabindex="0" aria-label="Редагувати запис"><div>${esc(e.cat)}</div>${e.note?`<small>${esc(e.note)}</small>`:""}</div>
+          <span class="num ${e.type==="inc"?"in":"out"}">${e.type==="inc"?"+":"−"}${fmt(e.amount)} ₴</span>
+          <button class="del" data-del="${esc(e.id)}" aria-label="Видалити запис">×</button></div>`;
+  const dayRows=Object.keys(dayTot).sort().reverse().map(d=>{ const t=dayTot[d]; const dd=dOf(d);
+    return `<button class="drow${d===sel?" sel":""}" data-day="${d}"><span class="dd">${dd.getDate()}.${pad(dd.getMonth()+1)}<small>${WDS[dd.getDay()]}</small></span><span class="bar"><i style="width:${t.exp/maxDay*100}%"></i></span><span class="num">${t.exp?"−"+fmt(t.exp):""}${t.inc?(t.exp?" ":"")+'<span class="in">+'+fmt(t.inc)+'</span>':""}</span></button>` }).join("");
+  const list = S.type==="exp"?EXP:INC;
+  if(!list.includes(S.cat)) S.cat=list[0];
+  const defDate = isCurrent ? todayISO() : key+"-01";
+
+  app.innerHTML = `
+  <div class="top">
+    <button class="arrow" id="prev" aria-label="Попередній місяць">‹</button>
+    <div class="month">${MONTHS[m-1]} ${y}</div>
+    <button class="arrow" id="next" aria-label="Наступний місяць">›</button>
+  </div>
+
+  <form class="quick${S.alert&&S.alert.kind==="error"?" bad":""}${S.shake?" shake":""}" id="qform" action="javascript:void(0)" autocomplete="off"><input id="quick" type="text" placeholder="кава 85, продукти 640, +15к зп" aria-label="Швидкий запис" autocomplete="off" autocorrect="off" enterkeyhint="send"><button id="qadd" type="submit">Додати</button></form>
+  ${S.alert?`<div class="alert ${S.alert.kind}" id="alert" role="alert"><span class="ic" aria-hidden="true">!</span><div class="tx"><b>${esc(S.alert.title)}</b>${esc(S.alert.text)}</div><button class="x" id="alertX" aria-label="Закрити повідомлення">×</button></div>`:""}
+  ${S.update?`<div class="alert warn"><span class="ic" aria-hidden="true">↻</span><div class="tx"><b>Є нова версія застосунку</b>Записи збережуться.</div><button class="mini-btn" id="upd">Оновити</button></div>`:""}
+  ${needBackup()?`<div class="alert warn"><span class="ic" aria-hidden="true">!</span><div class="tx"><b>Час зробити резервну копію</b>Остання: ${lastBackupText()}. Дані живуть лише на телефоні.</div><button class="mini-btn" data-backup="1">Зберегти</button></div>`:""}
+  <div class="qhint" aria-live="polite">${S.qmsg?esc(S.qmsg):"Кілька записів — через кому. Суми можна складати: таксі 60+30+70. Дохід — «+» або «зп». Дата — «вчора», «пт» чи «12.10» на початку."}</div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="month" aria-selected="${tab==="month"}">Місяць</button>
+    <button role="tab" data-tab="days" aria-selected="${tab==="days"}">По днях</button>
+  </div>
+
+  <div id="daysView" ${tab==="days"?"":"hidden"}>
+    <div class="panel"><div class="cal">${cal}</div></div>
+    <div class="stats">
+      <div class="stat"><span>Середньо на день</span><div class="num">${fmt(avg)} ₴</div></div>
+      <div class="stat"><span>${norm?"Денна норма":"Найдорожчий день"}</span><div class="num">${norm?fmt(norm)+" ₴":(top?dOf(top).getDate()+"."+pad(m)+" · "+short(dayTot[top].exp):"—")}</div></div>
+    </div>
+    <section class="daycard">
+      <h2>${longDate(sel)}</h2>
+      <div class="daysub">${st.list.length? "Записів: "+st.list.length : "Записів немає"}</div>
+      <div class="mini">
+        <div class="stat"><span>Витрачено</span><div class="num out">−${fmt(st.exp)} ₴</div></div>
+        <div class="stat"><span>Дохід</span><div class="num in">+${fmt(st.inc)} ₴</div></div>
+      </div>
+      ${norm&&st.exp?`<div class="normline">${st.exp<=norm?`На <b>${fmt(norm-st.exp)} ₴</b> менше за денну норму.`:`На <b>${fmt(st.exp-norm)} ₴</b> більше за денну норму.`}</div>`:""}
+      <div class="panel">
+        ${dayCats.length?dayCats.map(([c,v])=>`<div class="cat"><span>${esc(c)}</span><span class="num">${fmt(v)} ₴<span class="pct">${Math.round(v/st.exp*100)}%</span></span><div class="bar"><i style="width:${v/dayCats[0][1]*100}%"></i></div></div>`).join(""):""}
+        ${st.list.length? `<div class="day">${st.list.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).map(entryRow).join("")}</div>` : `<div class="empty">Цього дня нічого не записано.</div>`}
+        <button class="ghost small" id="addForDay">Записати на ${dOf(sel).getDate()}.${pad(m)}</button>
+      </div>
+    </section>
+    <section>
+      <h2>Усі дні</h2>
+      <div class="panel">${dayRows||'<div class="empty">Поки немає жодного дня з записами.</div>'}</div>
+    </section>
+  </div>
+
+  <div id="monthView" ${tab==="month"?"":"hidden"}>
+  <div class="hero">
+    <div class="label">${base>0 ? "Залишок від "+baseLabel : "Витрачено"}</div>
+    <div class="big num">${fmt(base>0?left:exp)}<small>₴</small></div>
+    ${base>0?`<div class="ruler" role="img" aria-label="Витрачено ${Math.round(pct)}%"><div class="fill ${left<0?"over":""}" style="width:${pct}%"></div></div>
+    <div class="ticks"><span>витрачено ${fmt(exp)} ₴</span><span>${baseLabel} ${fmt(base)} ₴</span></div>`:""}
+    ${allow?`<div class="allow">${allow}</div>`:""}
+  </div>
+  <div class="stats">
+    <div class="stat"><span>Доходи</span><div class="num in">+${fmt(inc)} ₴</div></div>
+    <div class="stat"><span>Витрати</span><div class="num out">−${fmt(exp)} ₴</div></div>
+  </div>
+
+  <section>
+    <details class="plain" id="detailed" ${S.detOpen||ed?"open":""}><summary>${ed?"Редагування запису":"Детальний запис"}</summary>
+    <div class="panel">
+      <div class="seg">
+        <button class="e" data-type="exp" aria-pressed="${S.type==="exp"}">Витрата</button>
+        <button class="i" data-type="inc" aria-pressed="${S.type==="inc"}">Дохід</button>
+      </div>
+      <div class="amount"><input id="amt" inputmode="text" placeholder="0" aria-label="Сума" autocomplete="off"><span>₴</span></div>
+      <div class="chips">${list.map(c=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${c===S.cat}">${esc(c)}</button>`).join("")}</div>
+      <div class="row">
+        <input class="field" id="note" placeholder="Коментар (необов'язково)" maxlength="80">
+        <input class="field" id="date" type="date" value="${defDate}" aria-label="Дата">
+      </div>
+      <button class="primary" id="add">${ed?"Зберегти зміни":"Додати"}</button>
+      ${ed?'<button class="ghost wide" id="cancelEdit">Скасувати редагування</button>':""}
+      <div class="hint" id="hint" aria-live="polite">${esc(S.msg)}</div>
+    </div>
+    </details>
+  </section>
+
+  <section>
+    <h2>Куди йдуть гроші</h2>
+    <div class="panel">
+      ${cats.length? cats.map(([c,v])=>`<div class="cat"><span>${esc(c)}</span><span class="num">${fmt(v)} ₴<span class="pct">${Math.round(v/exp*100)}%</span></span><div class="bar"><i style="width:${v/maxCat*100}%"></i></div></div>`).join("")
+        : `<div class="empty">Тут з'явиться розподіл витрат за категоріями.</div>`}
+    </div>
+  </section>
+
+  <section>
+    <h2>Записи</h2>
+    <div class="panel">
+      ${dayKeys.length? dayKeys.map(d=>{
+        const dd=days[d]; const dayExp=dd.filter(e=>e.type!=="inc").reduce((s,e)=>s+e.amount,0);
+        const [,mm,dn]=d.split("-");
+        return `<div class="day"><h3><button class="ghostlink" data-day="${d}" data-goto="1">${Number(dn)}.${mm} ›</button><span>${dayExp?"−"+fmt(dayExp)+" ₴":""}</span></h3>
+        ${dd.map(entryRow).join("")}</div>`;
+      }).join("") : `<div class="empty">Записів ще немає. Додай першу витрату чи дохід вище.</div>`}
+    </div>
+  </section>
+
+  <section>
+    <details class="panel" id="settings" ${S.openSettings?"open":""}>
+      <summary>План на місяць</summary>
+      <div class="set">
+        <label>Очікуваний дохід, ₴<input class="field" id="sInc" inputmode="numeric" value="${S.settings.income||""}" placeholder="напр. 40000"></label>
+        <label>Ліміт витрат, ₴<input class="field" id="sLim" inputmode="numeric" value="${S.settings.limit||""}" placeholder="напр. 30000"></label>
+        <button class="ghost" id="saveSet">Зберегти план</button>
+      </div>
+    </details>
+  </section>
+  <section>
+    <details class="panel" id="backup" ${S.openBackup?"open":""}>
+      <summary>Резервні копії та імпорт</summary>
+      <div class="set">
+        <p class="small">Записи зберігаються лише на цьому телефоні. Раз на тиждень зберігай копію — у файл або надішли собі в Telegram чи на Google Диск.</p>
+        <p class="small">Остання копія: <b>${lastBackupText()}</b></p>
+        <button class="ghost" id="export">Зберегти копію у файл (CSV)</button>
+        ${navigator.canShare?'<button class="ghost" id="share">Надіслати копію (Telegram, Диск…)</button>':""}
+        <button class="ghost" id="importBtn">Імпортувати записи з CSV</button>
+        <input type="file" id="importFile" accept=".csv,text/csv,text/plain" hidden>
+      </div>
+    </details>
+  </section>
+  </div>
+  <div class="note">Натисни на запис, щоб змінити суму, категорію чи дату.<br>Версія ${APP_VERSION} · ${navigator.onLine?"онлайн":"офлайн — усе працює"} · дані на цьому пристрої</div>`;
+  bind(); renderToast(); S.shake=false;
+  if(S.prefill){ const f=S.prefill; S.prefill=null; g("amt").value=f.a; g("note").value=f.n; g("date").value=f.d; g("detailed").scrollIntoView({block:"start",behavior:"smooth"}); }
+  else if(keep){ g("quick").value=keep.q; g("amt").value=keep.a; g("note").value=keep.n; g("date").value=keep.d; if(keep.f&&g(keep.f)) g(keep.f).focus(); }
+}
+
+function bind(){
+  const $=id=>document.getElementById(id);
+  const isEnter=e=>e.key==="Enter"||e.keyCode===13;
+  const go=d=>{ S.month=shiftMonth(S.month,d); S.msg=""; S.qmsg=""; S.alert=null; S.editing=null; subscribeMonth(); render(); };
+  $("prev").onclick=()=>go(-1); $("next").onclick=()=>go(1);
+  document.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{ S.type=b.dataset.type; S.cat=(S.type==="exp"?EXP:INC)[0]; render() });
+  document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S.cat=b.dataset.cat; document.querySelectorAll("[data-cat]").forEach(x=>x.setAttribute("aria-pressed",x===b)) });
+  $("amt").addEventListener("keydown",e=>{ if(isEnter(e)){ e.preventDefault(); add() } });
+  $("add").onclick=add;
+  if($("cancelEdit")) $("cancelEdit").onclick=()=>{ S.editing=null; S.msg=""; $("amt").value=""; $("note").value=""; render(); };
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; render(); });
+  document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{ S.selDay=b.dataset.day; if(b.dataset.goto){ S.tab="days"; render(); window.scrollTo({top:0,behavior:"smooth"}); } else { render(); if(b.classList.contains("drow")){ const c=document.querySelector(".daycard"); c&&c.scrollIntoView({block:"start",behavior:"smooth"}); } } });
+  if($("addForDay")) $("addForDay").onclick=()=>{ const d=dOf(S.selDay); const q=$("quick"); q.value=d.getDate()+"."+pad(d.getMonth()+1)+" "; window.scrollTo({top:0,behavior:"smooth"}); q.focus(); try{ q.setSelectionRange(q.value.length,q.value.length) }catch(_){} };
+  if($("alertX")) $("alertX").onclick=()=>{ S.alert=null; render(); };
+  $("qform").addEventListener("submit",e=>{ e.preventDefault(); quickAdd() });
+  $("detailed").addEventListener("toggle",e=>{ S.detOpen=e.target.open });
+  $("settings").addEventListener("toggle",e=>{ S.openSettings=e.target.open });
+  $("backup").addEventListener("toggle",e=>{ S.openBackup=e.target.open });
+  document.querySelectorAll("[data-edit]").forEach(el=>{
+    const open=()=>{ const e=findEntry(el.dataset.edit); if(!e) return;
+      S.editing={...e}; S.type=e.type; S.cat=e.cat; S.msg=""; S.tab="month";
+      S.prefill={a:String(e.amount), n:e.note||"", d:e.date}; render(); };
+    el.onclick=open; el.onkeydown=ev=>{ if(isEnter(ev)||ev.key===" "){ ev.preventDefault(); open() } };
+  });
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    const e=findEntry(b.dataset.del); if(!e) return;
+    const big = e.amount>=5000;
+    const okDel = await confirmBox({title:"Видалити запис?", text: big? "Це велика сума — перевір, що видаляєш правильний запис." : "Після видалення його можна буде повернути кнопкою «Скасувати» внизу протягом кількох секунд.",
+      whatL: e.cat+(e.note?" · "+e.note:"")+" · "+ddmm(e.date), whatR:(e.type==="inc"?"+":"−")+fmt(e.amount)+" ₴", ok:"Видалити", hold: big?2:0 });
+    if(!okDel || !findEntry(e.id)) return;
+    if(S.editing&&S.editing.id===e.id) S.editing=null;
+    removeIds([e.id]);
+    toast(`Видалено: ${e.cat} ${fmt(e.amount)} ₴`, ()=>addEntries([e]));
+  });
+  if($("export")) $("export").onclick=async()=>{
+    try{
+      const all=await S.store.allMonths();
+      Object.keys(S.data).forEach(k=>{ all[k]={entries:S.data[k].entries} });
+      const rows=[["Дата","Тип","Категорія","Сума","Коментар","ID"]];
+      Object.keys(all).sort().forEach(k=>((all[k]&&all[k].entries)||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)||(a.ts||0)-(b.ts||0)).forEach(e=>rows.push([e.date,e.type==="inc"?"Дохід":"Витрата",e.cat,String(e.amount).replace(".",","),e.note||"",e.id])));
+      const csv="\ufeff"+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(";")).join("\r\n");
+      await S.dl.save({filename:"budget-"+todayISO()+".csv", data:csv});
+      const mt=meta(); mt.lastBackup=Date.now(); meta(mt);
+      toast(S.shareMode?"Копію надіслано":"Файл збережено в «Завантаження»"); render();
+    }catch(e){ if(e&&(e.code==="declined"||e.name==="AbortError")) return; showAlert("error","Не вдалося зберегти файл",errText(e)); }
+    finally{ S.shareMode=false }
+  };
+  if($("share")) $("share").onclick=()=>{ S.shareMode=true; $("export").click(); };
+  document.querySelectorAll("[data-backup]").forEach(b=>b.onclick=()=>{ const ex=$("export"); ex&&ex.click(); });
+  if($("importBtn")) $("importBtn").onclick=()=>$("importFile").click();
+  if($("importFile")) $("importFile").onchange=async ev=>{ const f=ev.target.files&&ev.target.files[0]; ev.target.value=""; if(f) await importCsv(f); };
+  if($("upd")) $("upd").onclick=()=>{ S.update&&S.update.postMessage("skipWaiting") };
+  $("saveSet").onclick=async()=>{
+    const toN=v=>Math.max(0,Number(String(v).replace(/\s/g,"").replace(",","."))||0);
+    S.settings={income:toN($("sInc").value), limit:toN($("sLim").value)};
+    render(); toast("План збережено");
+    try{ await S.store.saveSettings(S.settings) }catch(e){ showAlert("error","План не збережено",errText(e)) }
+  };
+}
+async function add(){
+  const $=id=>document.getElementById(id);
+  const raw=$("amt").value.trim();
+  let amount = /^[\d\s.,]+$/.test(raw) ? Math.round(Number(raw.replace(/\s/g,"").replace(",","."))*100)/100 : evalExpr(prep(raw));
+  if(!(amount>0)){ $("hint").textContent="Введи суму більшу за нуль (можна 60+30)."; $("hint").className="hint err"; $("amt").focus(); return }
+  if(amount>5e6){ $("hint").textContent="Завелика сума — перевір, чи немає зайвих нулів."; $("hint").className="hint err"; return }
+  const date=$("date").value || todayISO();
+  const note=$("note").value.trim().slice(0,80);
+  const ed=S.editing;
+  try{
+    if(ed){
+      const old=findEntry(ed.id);
+      const upd={...ed, type:S.type, amount, cat:S.cat, note, date};
+      S.editing=null; $("amt").value=""; $("note").value="";
+      if(old){ removeIds([ed.id]); }
+      await addEntries([upd]);
+      toast("Зміни збережено", old? async()=>{ removeIds([upd.id]); await addEntries([old]); } : null);
+    } else {
+      const entry={id:newId(), type:S.type, amount, cat:S.cat, note, date, ts:Date.now()};
+      $("amt").value=""; $("note").value="";
+      await addEntries([entry]);
+      toast((S.type==="exp"?"Витрату":"Дохід")+` ${fmt(amount)} ₴ додано`+(monthOf(date)!==S.month?" в "+MONTHS_GEN[Number(date.slice(5,7))-1]:""), ()=>removeIds([entry.id]));
+    }
+  }catch(e){ showAlert("error","Запис не збережено",errText(e)); }
+  const a=$("amt"); if(a && !ed) a.focus();
+}
+
+window.addEventListener("error",e=>{ try{ showAlert("error","Помилка в трекері",(e.message||"невідома помилка")+". Скинь мені скріншот.") }catch(_){ } });
+window.addEventListener("unhandledrejection",e=>{ try{ showAlert("error","Помилка збереження",errText(e.reason)) }catch(_){ } });
+/* ---------- start ---------- */
+const META_KEY="bt:meta";
+function meta(v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(META_KEY)||"{}"); localStorage.setItem(META_KEY,JSON.stringify(v)) }catch(e){ return {} } }
+function logDeleted(ids){ try{ const k="bt:deleted"; const d=JSON.parse(localStorage.getItem(k)||"[]"); const now=Date.now(); ids.forEach(id=>d.push({id,at:now})); localStorage.setItem(k,JSON.stringify(d.slice(-5000))) }catch(e){} }
+async function start(){
+  S.store = makeLocal();
+  S.dl = { save: saveFile };
+  try{ if(navigator.storage && navigator.storage.persist){ S.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } }catch(e){}
+  S.store.watchSettings(s=>{ S.settings={income:Number(s&&s.income)||0, limit:Number(s&&s.limit)||0}; });
+  subscribeMonth();
+  if("serviceWorker" in navigator && location.protocol==="https:"){
+    try{
+      const reg=await navigator.serviceWorker.register("sw.js");
+      const offer=w=>{ S.update=w; render(); };
+      if(reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+      reg.addEventListener("updatefound",()=>{ const w=reg.installing; w&&w.addEventListener("statechange",()=>{ if(w.state==="installed" && navigator.serviceWorker.controller) offer(w) }) });
+      let reloaded=false; navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(!reloaded){ reloaded=true; location.reload() } });
+      setInterval(()=>reg.update().catch(()=>{}), 60*60*1000);
+    }catch(e){}
+  }
+  window.addEventListener("online",()=>render()); window.addEventListener("offline",()=>render());
+}
+async function saveFile({filename,data}){
+  const file=new File([data],filename,{type:filename.endsWith(".csv")?"text/csv":"application/octet-stream"});
+  if(S.shareMode && navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:filename}); return }
+  const url=URL.createObjectURL(file); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+start();
+})();
+</script>
+</body>
+</html>
