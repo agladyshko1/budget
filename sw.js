@@ -1,5 +1,5 @@
 // Щоб випустити оновлення: зміни номер версії нижче і завантаж файли заново.
-const VERSION = "1.0";
+const VERSION = "1.1";
 const CACHE = "budget-" + VERSION;
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 
